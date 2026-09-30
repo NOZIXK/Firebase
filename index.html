@@ -66,6 +66,38 @@
   </div>
 </header>
 
+<!-- ============ 3D SCENE ============ -->
+<section class="scene-sec" id="scene" aria-label="휴게소 3D 모형">
+  <div class="scene-pin">
+    <div class="wrap scene-copy">
+      <div class="idx"><b>00</b> / 현장</div>
+      <h2 class="rv">위에서 보면,<br><span class="sub">빈 자리는 이미 보입니다.</span></h2>
+    </div>
+    <div class="scene" id="scene3d">
+      <div class="world" id="world">
+        <div class="ground"></div>
+        <div class="highway" id="highway"><i class="median"></i></div>
+        <div class="ramp ramp-in"></div>
+        <div class="ramp ramp-out"></div>
+        <div class="lot-pad"></div>
+        <div class="box3d bldg" style="--x:360px;--y:196px;--w:280px;--d:78px;--h:46px;--c:#f4f4ef">
+          <i class="f-top"><span>휴게소</span></i><i class="f-s"></i><i class="f-n"></i><i class="f-e"></i><i class="f-w"></i>
+        </div>
+        <div class="box3d canopy" style="--x:760px;--y:210px;--w:90px;--d:60px;--h:30px;--c:#0b6b46">
+          <i class="f-top"><span>EV</span></i><i class="f-s"></i><i class="f-n"></i><i class="f-e"></i><i class="f-w"></i>
+        </div>
+        <div id="stalls"></div>
+        <div class="tag3d" id="recTag"><b>추천</b><span id="recTagId">-</span></div>
+      </div>
+    </div>
+    <div class="wrap scene-hud">
+      <div class="hud-item"><span class="mono">빈 자리</span><b id="hudFree">0</b><span class="mono" id="hudArea">안성휴게소 · 60면</span></div>
+      <div class="hud-item"><span class="mono">점유율</span><b id="hudOcc">0%</b><span class="mono" id="hudLevel">혼잡</span></div>
+      <p class="mono muted hud-note">직접 모델링한 주차장 · 2.5초마다 실시간 갱신<span class="desk-only"> · 스크롤하면 시점이 바뀝니다</span></p>
+    </div>
+  </div>
+</section>
+
 <!-- ============ PROBLEM ============ -->
 <section class="sec" id="problem">
   <div class="wrap">
@@ -364,6 +396,8 @@
   </div>
 </footer>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
 <script type="module" src="app.js"></script>
 </body>
 </html>

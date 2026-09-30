@@ -235,6 +235,65 @@ function renderPark() {
   renderLot();
 }
 
+
+// ---------------- 3D scene ----------------
+const STALL = { w: 34, h: 54, x0: 160, bands: [318, 410, 512] };
+const CAR_COLORS = ['#e9e9e4', '#bfc1ba', '#3b3d38', '#f4f4ef', '#8a8d86', '#1f3b57', '#7b2d26', '#d9d9d3', '#5d6b5f'];
+const FACES = '<i class="f-top"></i><i class="f-s"></i><i class="f-n"></i><i class="f-e"></i><i class="f-w"></i>';
+const stallPos = (i) => ({ x: STALL.x0 + (i % 20) * STALL.w, y: STALL.bands[Math.floor(i / 20)] });
+function buildScene() {
+  const pick = rnd(42);
+  let h = '';
+  for (let i = 0; i < 60; i++) {
+    const p = stallPos(i);
+    const c = CAR_COLORS[Math.floor(pick() * CAR_COLORS.length)];
+    h += `<div class="stall" data-i="${i}" style="left:${p.x}px;top:${p.y}px"><div class="box3d car" style="--c:${c}">${FACES}</div></div>`;
+  }
+  $('#stalls').innerHTML = h;
+  const lanes = [{ y: 5, w: true }, { y: 35, w: true }, { y: 70, w: false }, { y: 100, w: false }];
+  let hc = '';
+  for (let i = 0; i < 12; i++) {
+    const lane = lanes[i % 4];
+    const dur = 7 + pick() * 6;
+    const c = CAR_COLORS[Math.floor(pick() * CAR_COLORS.length)];
+    hc += `<div class="box3d hcar${lane.w ? ' w' : ''}" style="top:${lane.y}px;--c:${c};animation-duration:${dur.toFixed(1)}s;animation-delay:-${(pick() * dur).toFixed(1)}s">${FACES}</div>`;
+  }
+  $('#highway').insertAdjacentHTML('beforeend', hc);
+}
+function fitScene() {
+  const sc = $('#scene3d');
+  const fit = Math.min(sc.clientWidth / 1120, sc.clientHeight / 640);
+  $('#world').style.setProperty('--fit', Math.max(0.28, fit).toFixed(3));
+}
+function renderScene() {
+  const a = cur;
+  const cars = a.spots.filter((s) => s.type === 'car');
+  const rec = recommend(a);
+  const recIdx = rec ? cars.indexOf(rec) : -1;
+  document.querySelectorAll('#stalls .stall').forEach((el) => {
+    const i = +el.dataset.i;
+    el.classList.toggle('free', !cars[i].busy);
+    el.classList.toggle('rec', i === recIdx);
+  });
+  const tag = $('#recTag');
+  tag.style.opacity = recIdx < 0 ? 0 : 1;
+  if (recIdx >= 0) {
+    const p = stallPos(recIdx);
+    tag.style.setProperty('--tx', p.x + STALL.w / 2 + 'px');
+    tag.style.setProperty('--ty', p.y + STALL.h / 2 + 'px');
+    $('#recTagId').textContent = rec.id;
+  }
+  const free = cars.filter((s) => !s.busy).length;
+  const o = cars.filter((s) => s.busy).length / cars.length;
+  setNum($('#hudFree'), free);
+  $('#hudArea').textContent = `${a.name} · 소형 ${cars.length}면`;
+  $('#hudOcc').textContent = pct(o);
+  $('#hudLevel').textContent = level(o);
+}
+buildScene();
+fitScene();
+window.addEventListener('resize', fitScene);
+
 // ---------------- order ----------------
 const cart = {};
 let acct = { user: null, state: { stamps: 0, coupons: 0, orders: [] }, configured: false, ready: false, error: null };
@@ -454,6 +513,7 @@ function simulate() {
 
 function renderAll() {
   renderRoute();
+  renderScene();
   renderBigLot();
   renderBento();
   renderAreas();
@@ -581,6 +641,85 @@ document.querySelectorAll('.rv').forEach((el) => (io ? io.observe(el) : el.class
 
 renderMenu();
 renderAll();
+
+// ---------------- scroll motion (GSAP) ----------------
+const TABS = ['park', 'order', 'ev'];
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+if (window.gsap && window.ScrollTrigger && !reduced) {
+  gsap.registerPlugin(ScrollTrigger);
+  const mm = gsap.matchMedia();
+
+  // 3D 모형: 스크롤하면 카메라가 돌아가며 내려다봄
+  mm.add('(min-width: 761px)', () => {
+    const world = $('#world');
+    const cam = { rx: 50, rz: -26, s: 0.9 };
+    const apply = () => {
+      world.style.setProperty('--rx', cam.rx + 'deg');
+      world.style.setProperty('--rz', cam.rz + 'deg');
+      world.style.setProperty('--s', cam.s);
+    };
+    apply();
+    gsap.timeline({
+      scrollTrigger: { trigger: '#scene', start: 'top top', end: '+=130%', pin: '.scene-pin', scrub: 0.8 },
+      onUpdate: apply,
+    })
+      .to(cam, { rx: 60, rz: -40, s: 1.08, duration: 1, ease: 'none' })
+      .to(cam, { rx: 64, rz: -52, s: 1.16, duration: 1, ease: 'none' });
+    return () => { cam.rx = 54; cam.rz = -32; cam.s = 1; apply(); };
+  });
+
+  // 제품 섹션: 폰을 고정하고, 스크롤에 따라 주차 → 주문 → 충전으로 전환
+  mm.add('(min-width: 981px)', () => {
+    const phone = $('.phone');
+    const tilt = { rx: 12, ry: -18, s: 0.9 };
+    let fit = 1, lastTab = -1;
+    const measure = () => {
+      fit = Math.min(1, (innerHeight - 170) / 782);
+      phone.style.transformOrigin = '50% 0';
+      phone.style.marginBottom = -(782 * (1 - fit)) + 'px';
+    };
+    const apply = () => {
+      phone.style.transform = `scale(${(fit * tilt.s).toFixed(3)}) rotateX(${tilt.rx}deg) rotateY(${tilt.ry}deg)`;
+    };
+    measure(); apply();
+    ScrollTrigger.addEventListener('refreshInit', measure);
+    document.body.classList.add('demo-pinned');
+    const tl = gsap.timeline({
+      scrollTrigger: {
+        trigger: '.demo', start: 'top 84px', end: '+=240%', pin: true, scrub: 0.6,
+        onUpdate(self) {
+          const i = Math.min(2, Math.floor(self.progress * 3));
+          if (i !== lastTab) { lastTab = i; setTab(TABS[i]); }
+        },
+      },
+      onUpdate: apply,
+    })
+      .to(tilt, { rx: 0, ry: 0, s: 1, duration: 1, ease: 'power2.out' })
+      .to(tilt, { rx: 0, ry: 0, s: 1, duration: 0.8 })
+      .to(tilt, { rx: 6, ry: 14, s: 0.96, duration: 1, ease: 'power1.in' });
+    const st = tl.scrollTrigger;
+    const onFeature = (e) => {
+      const f = e.target.closest('.feature');
+      if (!f) return;
+      e.stopImmediatePropagation();
+      const i = TABS.indexOf(f.dataset.go);
+      window.scrollTo({ top: st.start + ((i + 0.5) / 3) * (st.end - st.start), behavior: 'smooth' });
+    };
+    $('.steps-list').addEventListener('click', onFeature, true);
+    return () => {
+      ScrollTrigger.removeEventListener('refreshInit', measure);
+      $('.steps-list').removeEventListener('click', onFeature, true);
+      document.body.classList.remove('demo-pinned');
+      phone.style.transform = phone.style.marginBottom = '';
+    };
+  });
+
+  // 앱 전용 화면(#app)에서는 스크롤 연출을 끔
+  const syncMode = () => ScrollTrigger.getAll().forEach((t) => (document.body.classList.contains('app-mode') ? t.disable(false) : t.enable()));
+  window.addEventListener('hashchange', () => setTimeout(() => { syncMode(); ScrollTrigger.refresh(); }, 0));
+  syncMode();
+}
+
 tickClock();
 setInterval(tickClock, 15000);
 setInterval(simulate, 2500);
