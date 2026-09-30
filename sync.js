@@ -1,6 +1,6 @@
 // 계정 기반 저장 · 기기 간 동기화 (Firebase Auth + Firestore)
 // 로그인 전이거나 firebase-config.js가 비어 있으면 이 기기(localStorage)에만 저장합니다.
-import { firebaseConfig } from './firebase-config.js';
+import { firebaseConfig } from './firebase-config.js?v=3';
 
 const SDK = 'https://www.gstatic.com/firebasejs/10.12.2';
 const LOCAL_KEY = 'restarea-state-v2';

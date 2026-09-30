@@ -1,4 +1,4 @@
-import { subscribe, placeOrder, message as syncMessage, STAMP_GOAL, signInGoogle, signInEmail, signUpEmail, resetPassword, signOut } from './sync.js';
+import { subscribe, placeOrder, message as syncMessage, STAMP_GOAL, signInGoogle, signInEmail, signUpEmail, resetPassword, signOut } from './sync.js?v=3';
 
 // ---------------- data (시연용 가상 데이터) ----------------
 const AREAS = [
